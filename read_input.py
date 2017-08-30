@@ -87,7 +87,7 @@ def read_input(filename, build=True):
     inp.timer  = simple_timer.timer()
 
     # sanity checks
-    lattice = np.array(inp.lattice.group(0).split(' ')[1:], dtype=float)
+    lattice = np.array(inp.lattice.group(0).split()[1:], dtype=float)
     if len(lattice) < inp.dimension:
         sys.exit("Must provide as many LATTICE constants as DIMENSIONS!")
     if len(inp.subsystem) > 2:
