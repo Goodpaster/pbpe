@@ -82,7 +82,7 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
         tF = Fock[np.ix_(range(nk), sub2sup[A], sub2sup[B])]
 
         # shift the orbital energies by the fermi energy of B
-        if inp.huzfermi and inp.Fermi[B] is not None:
+        if inp.huzfermi and inp.Fermi[B] is not None and inp.Fermi[B] > 0.:
             tF -= SmatAB * inp.Fermi[B]
 
         # add operator for each k-point
