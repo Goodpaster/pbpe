@@ -80,6 +80,12 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
     else:
         inp.timer.start('huzinaga operator')
         tF = Fock[np.ix_(range(nk), sub2sup[A], sub2sup[B])]
+
+        # shift the orbital energies by the fermi energy of B
+        if inp.huzfermi and inp.Fermi[B] is not None:
+            tF -= SmatAB * inp.Fermi[B]
+
+        # add operator for each k-point
         for k in range(nk):
             FDS = np.dot(tF[k], np.dot(inp.Dmat[B][k], SmatBA[k]))
             SDF = FDS.transpose().conjugate()
@@ -118,7 +124,7 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
     # shift virtual orbital energies
     if inp.shift and ldiag:
         for k in range(nk):
-            Fock[k] += ( SmatAA[k] - np.dot(np.dot(SmatAA[k],
+            Fock[...][k] += ( SmatAA[k] - np.dot(np.dot(SmatAA[k],
                     inp.Dmat[A][k] * 0.5), SmatAA[k]) ) * inp.shift
 
     # do diagonalization

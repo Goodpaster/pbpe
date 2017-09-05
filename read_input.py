@@ -78,6 +78,7 @@ def read_input(filename, build=True):
     reader.add_boolean_key('finite')     # do finite embedding
     reader.add_boolean_key('ldob')       # update B
     reader.add_boolean_key('fractional') # fractional input coordinates
+    reader.add_boolean_key('huzfermi')  # shifts energy to set fermi to zero
 
     # read the input file
     inp = reader.read_input(filename)
