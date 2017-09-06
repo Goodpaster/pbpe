@@ -81,9 +81,11 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
         inp.timer.start('huzinaga operator')
         tF = Fock[np.ix_(range(nk), sub2sup[A], sub2sup[B])]
 
-        # shift the orbital energies by the fermi energy of B
-        if inp.huzfermi and inp.Fermi[B] is not None and inp.Fermi[B] > 0.:
-            tF -= SmatAB * inp.Fermi[B]
+        # shift the orbital energies by the fermi energy
+        if inp.huzfermi and inp.Fermi[0] is not None and inp.Fermi[1] is not None:
+            efermi = max(inp.Fermi[0], inp.Fermi[1])
+            if efermi > 0.:
+                tF -= SmatAB * efermi
 
         # add operator for each k-point
         for k in range(nk):
@@ -227,7 +229,7 @@ def print_orbital_energies(np.ndarray[FTYPE_t, ndim=2] E, float fermi):
                 iocc += 1
                 idx.append(a[i])
         else:
-            if ivir < 3:
+            if ivir < 5:
                 ivir += 1
                 idx.append(a[i])
     idx = np.array(idx)
