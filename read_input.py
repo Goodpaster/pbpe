@@ -357,7 +357,7 @@ def read_input(filename, build=True):
             inp.cSCF[i].with_df.auxbasis = inp.auxbasis
             if inp.embed.method.lower() in ('hf', 'hartree-fock'):
                 inp.cSCF[i].exxdiv = inp.exxdiv
-            if inp.embed.cycles > 0 and i == 0:
+            if inp.embed.cycles > -1 and i == 0:
                 inp.cSCF[i].with_df.build(j_only=j_only)
         inp.timer.end('density fitting')
 
@@ -367,8 +367,12 @@ def read_input(filename, build=True):
     inp.FOCK   = None
     inp.Fock   = [None for i in range(inp.nsub)]
     inp.Energy = [None for i in range(inp.nsub)]
-    inp.Fermi  = [None for i in range(inp.nsub)]
     inp.Dmat   = [None for i in range(inp.nsub)]
+    if 'fermi' in inp.h5py:
+        inp.Fermi = inp.h5py['fermi']
+    else:
+        inp.Fermi = np.zeros((inp.nsub))
+        inp.Fermi = inp.h5py.create_dataset('fermi', data=inp.Fermi)
     get_sub2sup(inp)
 
     # return

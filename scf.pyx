@@ -82,10 +82,9 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
         tF = Fock[np.ix_(range(nk), sub2sup[A], sub2sup[B])]
 
         # shift the orbital energies by the fermi energy
-        if inp.huzfermi and inp.Fermi[0] is not None and inp.Fermi[1] is not None:
+        if inp.huzfermi:
             efermi = max(inp.Fermi[0], inp.Fermi[1])
-            if efermi > 0.:
-                tF -= SmatAB * efermi
+            tF -= SmatAB * efermi
 
         # add operator for each k-point
         for k in range(nk):
@@ -173,13 +172,10 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
     for k in range(nkpts):
         e[k], c[k] = sp.linalg.eigh(Fock[k], Smat[k])
 
-    # get fermi energy
+    # get fermi energy (average of HOMO and LUMO)
     norbs = ( nelectron * nkpts ) // 2
     e_sorted = np.sort(e.ravel())
-    if e_sorted[norbs-1] < 0. and e_sorted[norbs] > 0. and sigma is None: 
-        fermi = 0.
-    else:
-        fermi = ( e_sorted[norbs] + e_sorted[norbs-1] ) / 2.
+    fermi = ( e_sorted[norbs] + e_sorted[norbs-1] ) / 2.
 
     # print warning for band gap
     bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
