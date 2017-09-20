@@ -322,7 +322,15 @@ def low_in_plow(inp):
                 # update fock matrix
                 if jcyc > 1: vA = mfAl.get_veff(dm=dAold)
                 fock = hembed + vA
-                fock = DIIS.update(fock)
+
+                # apply mixing
+                if inp.mix is not None and fAold is not None:
+                    fock = fock * (1. - inp.mix) + fAold * inp.mix
+                fAold = np.copy(fock)
+
+                # apply diis
+                if inp.diis:
+                    fock = DIIS.update(fock)
 
                 # diagonalize
                 e, c = sp.linalg.eigh(fock, sA)
