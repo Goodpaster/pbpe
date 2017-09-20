@@ -157,7 +157,7 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
     else:
         return Fock[...]
 
-    return Dnew, energy
+    return Dnew, energy.real
 
 def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
 

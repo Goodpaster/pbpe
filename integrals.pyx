@@ -80,7 +80,7 @@ def get_2e_matrix(inp):
     # make supermolecular density matrix
     dm = np.zeros((nk, nS, nS), dtype=complex)
     for i in range(inp.nsub):
-        dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i]
+        dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i][...]
 
     # get effective potential
     try:
