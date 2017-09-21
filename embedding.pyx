@@ -316,6 +316,7 @@ def low_in_plow(inp):
             eAold = None
             dAold = np.copy(dmA[...])
             jcyc = 0
+            DIIS = lib.diis.DIIS()
             while (err > inp.embed.conv or erd > inp.embed.dconv) and jcyc < inp.embed.subcycles:
                 jcyc += 1
 
@@ -329,8 +330,8 @@ def low_in_plow(inp):
                 fAold = np.copy(fock)
 
                 # apply diis
-                if inp.diis:
-                    fock = DIIS.update(fock)
+#                if inp.diis:
+                fock = DIIS.update(fock)
 
                 # diagonalize
                 e, c = sp.linalg.eigh(fock, sA)
