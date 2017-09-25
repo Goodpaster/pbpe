@@ -330,8 +330,8 @@ def low_in_plow(inp):
                 fAold = np.copy(fock)
 
                 # apply diis
-#                if inp.diis:
-                fock = DIIS.update(fock)
+                if inp.diis:
+                    fock = DIIS.update(fock)
 
                 # diagonalize
                 e, c = sp.linalg.eigh(fock, sA)
