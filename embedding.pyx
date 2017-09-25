@@ -269,7 +269,9 @@ def low_in_plow(inp):
             mfAl.xc = inp.embed.method
             mfAl.grids = inp.sSCF.grids
         mfAl.max_cycle = inp.embed.subcycles
-        mfAl.verbose = 1
+        mfAl.verbose = 4
+        if inp.shift is not None: mfAl.level_shift = inp.shift
+        if inp.mix is not None: mfAl.damp = inp.mix
 
         # get number of filled orbitals
         n = np.zeros((inp.nao[0]))
