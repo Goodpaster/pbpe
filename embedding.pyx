@@ -335,7 +335,7 @@ def low_in_plow(inp):
 
                 # apply virtual orbital shifting
                 if inp.shift:
-                    fock += ( sA - np.dot(np.dot(dA, dAold*0.5), sA) ) * inp.shift
+                    fock += ( sA - np.dot(np.dot(sA, dAold*0.5), sA) ) * inp.shift
 
                 # diagonalize
                 e, c = sp.linalg.eigh(fock, sA)
