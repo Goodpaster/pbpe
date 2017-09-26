@@ -269,9 +269,6 @@ def low_in_plow(inp):
             mfAl.xc = inp.embed.method
             mfAl.grids = inp.sSCF.grids
         mfAl.max_cycle = inp.embed.subcycles
-        mfAl.verbose = 4
-        if inp.shift is not None: mfAl.level_shift = inp.shift
-        if inp.mix is not None: mfAl.damp = inp.mix
 
         # get number of filled orbitals
         n = np.zeros((inp.nao[0]))
@@ -297,9 +294,9 @@ def low_in_plow(inp):
         hembed = fock - vA
 
         # get old energies
-        eold  = np.trace(np.dot(dmA[...], hembed))
-        eold += 0.5 * np.trace(np.dot(dmA[...], vA))
-#        eBold = np.einsum('kab,kab', hB, inp.Dmat[1]).real
+        eold  = 0.5 * np.trace(np.dot(dmA[...], hembed))
+        eold += 0.5 * np.trace(np.dot(dmA[...], fock))
+        eBold = np.einsum('kab,kab', hB, inp.Dmat[1]).real
 
         fAold = None
         while err > inp.embed.conv and icyc < inp.embed.cycles:
@@ -315,56 +312,51 @@ def low_in_plow(inp):
                 hembed = fock - vA
             mfAl.get_hcore = lambda *args: hembed
 
-#            # diagonalize in subcycles
-#            eAold = None
-#            dAold = np.copy(dmA[...])
-#            jcyc = 0
-#            DIIS = lib.diis.DIIS()
-#            while (err > inp.embed.conv or erd > inp.embed.dconv) and jcyc < inp.embed.subcycles:
-#                jcyc += 1
-#
-#                # update fock matrix
-#                if jcyc > 1: vA = mfAl.get_veff(dm=dAold)
-#                fock = hembed + vA
-#
-#                # apply mixing
-#                if inp.mix is not None and fAold is not None:
-#                    fock = fock * (1. - inp.mix) + fAold * inp.mix
-#                fAold = np.copy(fock)
-#
-#                # apply diis
-#                if inp.diis:
-#                    fock = DIIS.update(fock)
-#
-#                # diagonalize
-#                e, c = sp.linalg.eigh(fock, sA)
-#                dA = np.dot(c * n, c.transpose())
-#
-#                # new energies
-#                enew  = 0.5 * np.trace(np.dot(dA, hembed))
-#                enew += 0.5 * np.trace(np.dot(dA, fock))
-#                if eAold is None: eAold = np.copy(eold)
-#                err = np.abs(eAold - enew)
-#                eAold = np.copy(enew)
-#                erd = np.linalg.norm(dAold - dA)
-#                dAold = np.copy(dA)
-#
-#                if inp.embed.subcycles > 1:
-#                    print ('Subsys A   iter:{0:<2d}   |dE|:{1:16.12f}   '
-#                           '|ddm|:{2:16.12f}'.format(jcyc, err, erd))
+            # diagonalize in subcycles
+            eAold = None
+            dAold = np.copy(dmA[...])
+            jcyc = 0
+            DIIS = lib.diis.DIIS()
+            while (err > inp.embed.conv or erd > inp.embed.dconv) and jcyc < inp.embed.subcycles:
+                jcyc += 1
 
-            # do kernel
-            mfAl.kernel(dm0=dmA[...])
-            dA = mfAl.make_rdm1()
-            vA = mfAl.get_veff(dm=dA)
+                # update fock matrix
+                if jcyc > 1: vA = mfAl.get_veff(dm=dAold)
+                fock = hembed + vA
+
+                # apply mixing
+                if inp.mix is not None and fAold is not None:
+                    fock = fock * (1. - inp.mix) + fAold * inp.mix
+                fAold = np.copy(fock)
+
+                # apply diis
+                if inp.diis:
+                    fock = DIIS.update(fock)
+
+                # diagonalize
+                e, c = sp.linalg.eigh(fock, sA)
+                dA = np.dot(c * n, c.transpose())
+
+                # new energies
+                enew  = 0.5 * np.trace(np.dot(dA, hembed))
+                enew += 0.5 * np.trace(np.dot(dA, fock))
+                if eAold is None: eAold = np.copy(eold)
+                err = np.abs(eAold - enew)
+                eAold = np.copy(enew)
+                erd = np.linalg.norm(dAold - dA)
+                dAold = np.copy(dA)
+
+                if inp.embed.subcycles > 1:
+                    print ('Subsys A   iter:{0:<2d}   |dE|:{1:16.12f}   '
+                           '|ddm|:{2:16.12f}'.format(jcyc, err, erd))
 
             # new density error
             erd = sp.linalg.norm(dmA[...] - dA)
             dmA[...] = np.copy(dA)
 
             # new energies
-            enew  = np.trace(np.dot(dA, hembed))
-            enew += 0.5 * np.trace(np.dot(dA, vA))
+            enew  = 0.5 * np.trace(np.dot(dA, hembed))
+            enew += 0.5 * np.trace(np.dot(dA, fock))
             err = np.abs(eold - enew)
             eold = np.copy(enew)
 
