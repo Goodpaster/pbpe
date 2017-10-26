@@ -73,12 +73,14 @@ def read_input(filename, build=True):
     reader.add_line_key('smear', type=float, default=None) # Fermi smearing
     reader.add_line_key('mix', type=float, default=None)   # Fock matrix mixing
     reader.add_line_key('shift', type=float, default=None) # orbital energy shift
+    reader.add_line_key('dmix', type=float, default=None)  # Density matrix mixing
 
     # add boolean keys
     reader.add_boolean_key('finite')     # do finite embedding
     reader.add_boolean_key('ldob')       # update B
     reader.add_boolean_key('fractional') # fractional input coordinates
-    reader.add_boolean_key('huzfermi')  # shifts energy to set fermi to zero
+    reader.add_boolean_key('huzfermi')   # shifts energy to set fermi to zero
+    reader.add_boolean_key('fcidump')    # creates an .fcidump file for sup calc.
 
     # read the input file
     inp = reader.read_input(filename)
@@ -263,7 +265,7 @@ def read_input(filename, build=True):
     if inp.nsub > 1:
         ccell = concatenate_cells(inp.cell[0], inp.cell[1], ghost=False)
         for i in range(2, inp.nsub):
-            ccell = concatenate_mols(ccell, inp.cell[i], ghost=False)
+            ccell = concatenate_cells(ccell, inp.cell[i], ghost=False)
         inp.ccell = ccell
     else:
         inp.ccell = ccell = inp.cell[0]

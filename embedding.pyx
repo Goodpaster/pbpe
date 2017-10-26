@@ -585,3 +585,31 @@ def high_in_plow(inp):
 def print_error(icyc, de, ddm):
     print ('iter: {0:<3d}     |dE|: {1:16.12f}     |ddm|: {2:16.12f}'.format(
             icyc, de, ddm))
+
+####################################################################################################
+#                               Supermolecular periodic CCSD Calculation                           #
+####################################################################################################
+def do_supermol_periodic_ccsd(inp):
+
+    from pyscf.pbc.scf import KRHF
+    from pyscf.pbc.cc import KCCSD
+
+    if inp.method in ('ccsd'):
+
+        # do periodic Hartree-Fock
+        cell = inp.sSCF.cell
+        kmf = KRHF(cell, kpts=inp.kpts)
+        kmf.with_df = inp.DF(cell, kpts=inp.kpts)
+        kmf.verbose = inp.verbose
+        ehf = kmf.kernel(dm0=inp.Dsup)
+
+        # do periodic CCSD
+        kcc = KCCSD(kmf)
+        ecc = kcc.kernel()
+
+        # print energies
+        print ("Supermolecular HF        {0:17.12f}".format(ehf))
+        print ("Supermolecular Corr.     {0:17.12f}".format(ecc[0]))
+        print ("Supermolecular CCSD      {0:17.12f}".format(ehf+ecc[0]))
+
+    return

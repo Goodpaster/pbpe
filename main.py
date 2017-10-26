@@ -44,6 +44,10 @@ def main(filename):
     from embedding import high_in_plow
     inp = high_in_plow(inp)
 
+    # periodic CCSD calculation
+    from embedding import do_supermol_periodic_ccsd
+    do_supermol_periodic_ccsd(inp)
+
     # close timer and h5py files
     inp.h5py.close()
     inp.timer.close()

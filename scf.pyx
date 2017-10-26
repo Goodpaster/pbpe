@@ -138,6 +138,11 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
 
         Dnew, C, n, inp.Energy[A], inp.Fermi[A] = diagonalize(Fock[...],
             SmatAA, inp.kpts, inp.cSCF[A].cell.nelectron, sigma=smear)
+
+        # mix in old Density matrix
+        if inp.dmix is not None:
+            Dnew = Dnew * (1. - inp.dmix) + inp.Dmat[A][...] * inp.dmix
+
         inp.timer.end('diagonalization')
 
         # save coefficient matrix to file
@@ -451,4 +456,103 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
     else:
         esup = mf.energy_tot(dm=dm, h1e=hcore)
 
+    # generate FCIDUMP file
+    if inp.fcidump:
+        fcidumpfile = inp.filename[:-4]+'.fcidump'
+        fcidump(inp, fcidumpfile, inp.sSCF, c, inp.hcore, tol=1e-8)
+
     return esup, e, dm
+
+def fcidump(inp, fn, mf, C, hcore, tol=1e-12):
+
+    # get some variables
+    nk = len(mf.kpts)
+    nao = mf.cell.nao_nr()
+    nmo = nk*nao
+    nel = nk*mf.cell.nelectron
+    enuc = mf.energy_nuc()
+
+    # make float for gamma point only
+    if nk == 1:
+        dtype = float
+    else:
+        dtype = complex
+
+    # get kpoints
+    if inp.kgroup.__class__ is tuple:
+        nprop = np.array(inp.kgroup)
+    else:
+        nprop = np.zeros((3), dtype=int)
+        nprop[0] = nk
+        nprop[1] = 1
+        nprop[2] = 1
+
+    # make h1e
+    h1e = np.zeros((nmo,nmo), dtype=dtype)
+    for ik in range(nk):
+        rk = range(ik*nao,ik*nao+nao)
+        temp = reduce(np.dot, (C[ik].T.conjugate(), hcore[ik], C[ik]))
+        if nk == 1: temp = temp.real
+        h1e[np.ix_(rk,rk)] = temp
+
+    # make h2e
+    h2e = np.zeros((nmo,nmo,nmo,nmo), dtype=dtype)
+    if nk == 1:
+        temp = mf.with_df.get_mo_eri(C[0])
+        temp = temp.real
+        i1 = -1
+        for i in range(nao):
+            for j in range(i,nao):
+                i1 += 1
+                i2 = -1
+                for k in range(nao):
+                    for l in range(nao):
+                        i2 += 1
+                        h2e[i][j][k][l] = temp[i1][i2]
+    else:
+        for ik in range(nk):
+            rk = range(ik*nao,ik*nao+nao)
+            temp = mf.with_df.get_mo_eri(C, kpts=inp.kpts[ik])
+            temp = temp.reshape(nao,nao,nao,nao)
+            h2e[np.ix_(rk,rk,rk,rk)] = temp
+
+    # write header of FCIDUMP file
+    fout = open(fn, 'w')
+    fout.write('&FCI NORB={0},NELEC={1},MS2=0,\n'.format(nmo, nel))
+    fout.write(' ORBSYM={0}\n'.format('1,'*nmo))
+    fout.write(' ISYM=1\n')
+    fout.write(' NPROP= {0} {1} {2}\n'.format(nprop[0], nprop[1], nprop[2]))
+    fout.write(' PROPBITLEN= 15\n')
+    fout.write('&END\n')
+
+    # write 2MO integrals
+    for i in range(nmo):
+        for j in range(i,nmo):
+            for k in range(nmo):
+                for l in range(k,nmo):
+                    if np.abs(h2e[i,j,k,l]) > tol:
+                        if nk == 1:
+                            fout.write('{0:15.8e} {1:3d} {2:3d} {3:3d} {4:3d}\n'.format(
+                                h2e[i,j,k,l], i+1, j+1, k+1, l+1))
+                        else:
+                            fout.write('({0:15.8e},{1:15.8e}) {2:3d} {3:3d} {4:3d} {5:3d}\n'.format(
+                                h2e[i,j,k,l].real, h2e[i,j,k,l].imag, i+1, j+1, k+1, l+1))
+
+    # write 1MO integrals
+    for i in range(nmo):
+        for j in range(i,nmo):
+            if np.abs(h1e[i,j]) > tol:
+                if nk == 1:
+                    fout.write('{0:15.8e} {1:3d} {2:3d} {3:3d} {4:3d}\n'.format(
+                        h1e[i,j], i+1, j+1, 0, 0))
+                else:
+                    fout.write('({0:15.8e},{1:15.8e}) {2:3d} {3:3d} {4:3d} {5:3d}\n'.format(
+                        h1e[i,j].real, h1e[i,j].imag, i+1, j+1, 0, 0))
+
+    # write nuc energy
+    if nk == 1:
+        fout.write('{0:15.8e} {1:>3d} {2:>3d} {3:>3d} {4:>3d}\n'.format(
+            enuc, 0, 0, 0, 0))
+    else:
+        fout.write('{0:15.8e}                   {1:>3d} {2:>3d} {3:>3d} {4:>3d}\n'.format(
+            enuc, 0, 0, 0, 0))
