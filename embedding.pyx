@@ -605,6 +605,7 @@ def do_supermol_periodic_ccsd(inp):
 
         # do periodic CCSD
         kcc = KCCSD(kmf)
+        kcc.max_cycle = 10
         ecc = kcc.kernel()
 
         # print energies
