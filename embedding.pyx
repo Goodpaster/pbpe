@@ -592,7 +592,8 @@ def print_error(icyc, de, ddm):
 def do_supermol_periodic_ccsd(inp):
 
     from pyscf.pbc.scf import KRHF
-    from pyscf.pbc.cc import KCCSD
+    from pyscf.pbc.cc import KRCCSD
+    from pyscf.pbc.cc.kccsd_rhf import _ERIS
 
     if inp.method in ('ccsd'):
 
@@ -604,7 +605,8 @@ def do_supermol_periodic_ccsd(inp):
         ehf = kmf.kernel(dm0=inp.Dsup)
 
         # do periodic CCSD
-        kcc = KCCSD(kmf)
+        kcc = KRCCSD(kmf)
+        eris = _ERIS(kcc, kmf.mo_coeff_kpts, method='outcore')
         kcc.max_cycle = 10
         ecc = kcc.kernel()
 
