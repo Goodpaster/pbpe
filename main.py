@@ -8,7 +8,7 @@ def main(filename):
 
     # initialize and print header
     pstr ("", delim="*", addline=False)
-    pstr (" EMBEDDED PERIODIC BOUNDARY CONDITIONS ", delim="*", fill=False, addline=False)
+    pstr (" PROJECTION-BASED PERIODIC EMBEDDING ", delim="*", fill=False, addline=False)
     pstr ("", delim="*", addline=False)
 
     # print input file to stdout
