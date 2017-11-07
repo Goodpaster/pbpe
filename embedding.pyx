@@ -40,29 +40,52 @@ def plow_in_plow(inp):
             inp.ift += 1
 
             # embed A in B
-            DAnew, enew[0] = do_embedding(0, inp)
-            errD = sp.linalg.norm(inp.Dmat[0][...] - DAnew)
+            d0 = np.copy(inp.Dmat[0][...])
+            e0 = np.copy(eold[0])
+            isub = 0
+            ed = 1.
+            while (isub < inp.embed.subcycles and ed > inp.embed.conv):
+                isub += 1
+                DAnew, enew[0] = do_embedding(0, inp)
+                ed = np.abs(e0 - enew[0])
+                e0 = np.copy(enew[0])
+                inp.Dmat[0][...] = np.copy(DAnew)
+                if inp.embed.subcycles > 1:
+                    print ('Subsystem A {0:>3d} |dE|: {1:16.12f}'.format(isub, ed))
+
+            errD = sp.linalg.norm(d0 - DAnew)
             if eold[0] == 0.:
                 error = np.abs(enew[0])
             else:
                 error = np.abs(eold[0] - enew[0])
-            inp.Dmat[0][...] = np.copy(DAnew)
-            del (DAnew)
 
             # embed B in A
             if not inp.embed.freezeb:
-                DBnew, enew[1] = do_embedding(1, inp)
-                errD += sp.linalg.norm(inp.Dmat[1][...] - DBnew)
+                d1 = np.copy(inp.Dmat[1][...])
+                e1 = np.copy(eold[1])
+                isub = 0
+                ed = 1.
+                while (isub < inp.embed.subcycles and ed > inp.embed.conv):
+                    isub += 1
+                    DBnew, enew[1] = do_embedding(1, inp)
+                    ed = np.abs(e1 - enew[1])
+                    e1 = np.copy(enew[1])
+                    inp.Dmat[1][...] = np.copy(DBnew)
+                    if inp.embed.subcycles > 1:
+                        print ('Subsystem B {0:>3d} |dE|: {1:16.12f}'.format(isub, ed))
+
+                errD += sp.linalg.norm(d1 - DBnew)
                 if eold[1] == 0.:
                     error += np.abs(enew[1])
                 else:
                     error += np.abs(eold[1] - enew[1])
-                inp.Dmat[1][...] = np.copy(DBnew)
-                del (DBnew)
 
             print_error(inp.ift, error, errD)
             eold[0] = enew[0].real
-            eold[1] = enew[1].real
+            if not inp.embed.freezeb:
+                eold[1] = enew[1].real
+            else:
+                eold[1] = 0.
 
         if error <= inp.embed.conv:
             pstr ("SCF converged after {0} cycles".format(inp.ift), delim='!', addline=False)
@@ -553,7 +576,7 @@ def high_in_plow(inp):
                 pstr ("Finite Embedded CCSD Calculation")
 
             inp.timer.start('finite emb ccsd')
-            mCCSD = cc.CCSD(mfA)
+            mCCSD = cc.RCCSD(mfA)
             ecc, t1, t2 = mCCSD.kernel()
 
             if inp.method in ('ccsd(t)'):
@@ -607,7 +630,7 @@ def do_supermol_periodic_ccsd(inp):
         # do periodic CCSD
         kcc = KRCCSD(kmf)
         eris = _ERIS(kcc, kmf.mo_coeff_kpts, method='outcore')
-        kcc.max_cycle = 10
+#        kcc.max_cycle = 10
         ecc = kcc.kernel()
 
         # print energies
