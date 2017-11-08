@@ -58,6 +58,8 @@ def plow_in_plow(inp):
                 error = np.abs(enew[0])
             else:
                 error = np.abs(eold[0] - enew[0])
+            del (DAnew)
+            del (d0)
 
             # embed B in A
             if not inp.embed.freezeb:
@@ -79,6 +81,8 @@ def plow_in_plow(inp):
                     error += np.abs(enew[1])
                 else:
                     error += np.abs(eold[1] - enew[1])
+                del (DBnew)
+                del (d1)
 
             print_error(inp.ift, error, errD)
             eold[0] = enew[0].real

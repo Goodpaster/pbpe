@@ -44,19 +44,18 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
         if inp.mix is not None and inp.ift>1 and inp.FOCK is not None:
             Fock = Fock * (1. - inp.mix) + inp.FOCK * inp.mix
 
-#        # use DIIS on total fock matrix
-#        if inp.diis and inp.ift>=inp.diis:
-#            if inp.DIIS[A] is None:
-#                from pyscf.scf.diis import CDIIS
-#                inp.DIIS[A] = CDIIS()
-#                inp.DIIS[A].space = 20
-##            Fock = inp.DIIS[A].update(Fock)
-#
-#        # make supermolecular density matrix
-#            dm = np.zeros((nk, nS, nS), dtype=complex)
-#            for i in range(inp.nsub):
-#                dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i][...]
-#            Fock = inp.DIIS[A].update(inp.Smat[...], dm, Fock)
+        # use DIIS on total fock matrix
+        if inp.embed.subcycles == 1:
+            if inp.diis and inp.ift>=inp.diis:
+                if inp.DIIS[A] is None:
+                    from pyscf.scf.diis import CDIIS
+                    inp.DIIS[A] = CDIIS()
+                    inp.DIIS[A].space = 20
+                # make supermolecular density matrix
+                dm = np.zeros((nk, nS, nS), dtype=complex)
+                for i in range(inp.nsub):
+                    dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i][...]
+                Fock = inp.DIIS[A].update(inp.Smat[...], dm, Fock)
 
         # save the total Fock matrix
         inp.FOCK = np.copy(Fock)
@@ -136,12 +135,13 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
                     inp.Dmat[A][k] * 0.5), SmatAA[k]) ) * inp.shift
 
     # use DIIS on the fock matrix
-    if inp.diis and inp.ift>=inp.diis:
-        if inp.DIIS[A] is None:
-            from pyscf.scf.diis import CDIIS
-            inp.DIIS[A] = CDIIS()
-            inp.DIIS[A].space = 30
-        Fock[...] = inp.DIIS[A].update(SmatAA, inp.Dmat[A][...], Fock[...])
+    if inp.embed.subcycles > 1:
+        if inp.diis and inp.ift>=inp.diis:
+            if inp.DIIS[A] is None:
+                from pyscf.scf.diis import CDIIS
+                inp.DIIS[A] = CDIIS()
+                inp.DIIS[A].space = 30
+            Fock[...] = inp.DIIS[A].update(SmatAA, inp.Dmat[A][...], Fock[...])
 
     # do diagonalization
     if ldiag:
