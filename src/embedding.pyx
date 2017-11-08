@@ -17,7 +17,7 @@ def plow_in_plow(inp):
     from scf import do_embedding
     from scf import print_orbital_energies
     from scf import get_total_energy
-    from main import pstr
+    from pstr import pstr
 
     # do freeze-and-thaw cycles
     if inp.embed.cycles > -1:
@@ -157,7 +157,7 @@ def plow_in_plow(inp):
 def phigh_in_plow(inp):
     '''Periodic high level-in-periodic low level embedding.'''
 
-    from main import pstr
+    from pstr import pstr
     from scf import diagonalize
     from pyscf import lib
     from pyscf import pbc
@@ -267,7 +267,7 @@ def low_in_plow(inp):
     from scf import do_embedding
     from scf import print_orbital_energies
     from scf import get_total_energy
-    from main import pstr
+    from pstr import pstr
     from intor import k2origin, origin2k
     from pyscf import lib, scf
 
@@ -483,7 +483,7 @@ def low_in_plow(inp):
 def high_in_plow(inp):
     '''Finite high level-in-periodic low level embedding.'''
 
-    from main import pstr
+    from pstr import pstr
     from pyscf import lib, scf, cc
 
     if inp.finite and inp.method != inp.embed.method:

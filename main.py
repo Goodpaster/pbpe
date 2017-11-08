@@ -4,7 +4,8 @@ from __future__ import print_function, division
 def main(filename):
     '''Main Program.'''
 
-    from read_input import read_input
+    from src.read_input import read_input
+    from src import pstr
 
     # initialize and print header
     pstr ("", delim="*", addline=False)
@@ -21,31 +22,31 @@ def main(filename):
     inp = read_input(filename)
 
     # get initial densities
-    from integrals import get_subsystem_densities
+    from src.integrals import get_subsystem_densities
     inp = get_subsystem_densities(inp)
 
     # get supermolecular 1e matrices
-    from integrals import get_supermol_1e_matrices
+    from src.integrals import get_supermol_1e_matrices
     inp = get_supermol_1e_matrices(inp)
 
     # periodic-in-periodic low level embedding
-    from embedding import plow_in_plow
+    from src.embedding import plow_in_plow
     inp = plow_in_plow(inp)
 
     # periodic high level-in-periodic low level embedding
-    from embedding import phigh_in_plow
+    from src.embedding import phigh_in_plow
     inp = phigh_in_plow(inp)
 
     # finite cluster low level-in-periodic low level embedding
-    from embedding import low_in_plow
+    from src.embedding import low_in_plow
     inp = low_in_plow(inp)
 
     # finite cluster high level-in-periodic low level embedding
-    from embedding import high_in_plow
+    from src.embedding import high_in_plow
     inp = high_in_plow(inp)
 
     # periodic CCSD calculation
-    from embedding import do_supermol_periodic_ccsd
+    from src.embedding import do_supermol_periodic_ccsd
     do_supermol_periodic_ccsd(inp)
 
     # close timer and h5py files
@@ -70,22 +71,6 @@ def get_input_files():
     args = parser.parse_args()
 
     return args.input_files
-
-def pstr(st, delim="=", l=80, fill=True, addline=True, after=False):
-    '''Print formatted string <st> to output'''
-    if addline: print ("")
-    if len(st) == 0:
-        print (delim*l)
-    elif len(st) >= l:
-        print (st)
-    else:
-        l1 = int((l-len(st)-2)/2)
-        l2 = int((l-len(st)-2)/2 + (l-len(st)-2)%2)
-        if fill:
-            print (delim*l1+" "+st+" "+delim*l2)
-        else:
-            print (delim+" "*l1+st+" "*l2+delim)
-    if after: print ("")
 
 if __name__ == '__main__':
 

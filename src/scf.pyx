@@ -310,7 +310,7 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
     '''Do the supermolecular SCF.'''
 
     from pyscf import lib
-    from main import pstr
+    from pstr import pstr
     import pickle
 
     cdef int nk = len(kpts)
