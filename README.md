@@ -4,7 +4,7 @@ Projection-based Periodic Embedding
 (c) 2017
 
 Authors:
-* Dhabih V. Chulhai
+* Dhabih V. Chulhai <dchulhai@umn.edu>
 * Jason D. Goodpaster <jgoodpas@umn.edu>
 
 Installation
