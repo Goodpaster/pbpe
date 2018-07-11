@@ -78,7 +78,10 @@ def get_2e_matrix(inp):
     sub2sup = inp.sub2sup
 
     # make supermolecular density matrix
-    dm = np.zeros((nk, nS, nS), dtype=complex)
+    if nk == 1:
+        dm = np.zeros((nk, nS, nS), dtype=float)
+    else:
+        dm = np.zeros((nk, nS, nS), dtype=complex)
     for i in range(inp.nsub):
         dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i][...]
 

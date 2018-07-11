@@ -30,5 +30,7 @@ Installation
 Citation
 --------
 
-???
+* [D.V. Chulhai and J.D. Goodpaster, <em>J. Chem. Theory Comput.</em> <b>2017</b>, <em>13</em>, 1503-1508.](http://dx.doi.org/10.1021/acs.jctc.7b00034)
+
+* [D.V. Chulhai and J.D. Goodpaster, <em>J. Chem. Theory Comput.</em> <b>2018</b>, <em>14</em>, 1928-1942.](http://dx.doi.org/10.1021/acs.jctc.7b01154)
 

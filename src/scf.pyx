@@ -12,7 +12,10 @@ def init_guess(cSCF, kpts):
     '''Initial guess of the density matrix.'''
     cdef nk = len(kpts)
     dm0 = cSCF.init_guess_by_atom()
-    dm = np.zeros((nk, dm0.shape[0], dm0.shape[1]), dtype=complex)
+    if nk == 1:
+        dm = np.zeros((1, dm0.shape[0], dm0.shape[1]), dtype=float)
+    else:
+        dm = np.zeros((nk, dm0.shape[0], dm0.shape[1]), dtype=complex)
     for i in range(nk):
         dm[i] = dm0
     return dm
@@ -213,7 +216,10 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
         mo_occ[i0] = 0.
 
     # get density matrix
-    dmat = np.zeros((nkpts, nao, nao), dtype=complex)
+    if nkpts == 1:
+        dmat = np.zeros((nkpts, nao, nao), dtype=float)
+    else:
+        dmat = np.zeros((nkpts, nao, nao), dtype=complex)
     for k in range(nkpts):
         dmat[k] = np.dot(c[k] * mo_occ[k], c[k].transpose().conjugate())
 
@@ -267,7 +273,10 @@ def get_total_energy(inp, kpts, dsup=None, ldosup=True):
     sub2sup = inp.sub2sup
 
     # make supermolecular density matrix
-    dm = np.zeros((nk, nS, nS), dtype=complex)
+    if nk == 1:
+        dm = np.zeros((nk, nS, nS), dtype=float)
+    else:
+        dm = np.zeros((nk, nS, nS), dtype=complex)
     for i in range(inp.nsub):
         dm[np.ix_(range(nk), sub2sup[i], sub2sup[i])] += inp.Dmat[i][...]
 
@@ -413,7 +422,10 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
                        i+1, e.flatten()[eorder][i], mo_occ.flatten()[eorder][i]))
 
         # get density matrix
-        dmat = np.zeros((nk, nao, nao), dtype=complex)
+        if nk == 1:
+            dmat = np.zeros((nk, nao, nao), dtype=float)
+        else:
+            dmat = np.zeros((nk, nao, nao), dtype=complex)
         for k in range(nk):
             dmat[k] = np.dot( c[k] * mo_occ[k], c[k].transpose().conjugate())
 
