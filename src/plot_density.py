@@ -11,7 +11,7 @@ def main(filename, x=None, y=None, z=None, sep=0.01):
     Requires the *filename*.hdf5 file to be saved.'''
 
     import pyscf
-    from read_input import read_input
+    from .read_input import read_input
     from matplotlib import pyplot as plt
     import os
     from matplotlib.colors import LogNorm

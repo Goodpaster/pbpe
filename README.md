@@ -11,7 +11,7 @@ Installation
 ------------
 
 * Prerequisites
-    - Python 2.6, 2.7
+    - Python 3.5
     - Numpy 1.8.0 or higher
     - Scipy 0.10 or higher
     - h5py 2.3.0 or higher

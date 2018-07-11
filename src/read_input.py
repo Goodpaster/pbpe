@@ -1,19 +1,19 @@
 def read_input(filename, build=True):
     '''Reads a formatted input file.'''
 
-    import input_reader
+    from input_reader import InputReader
     import sys
     from pyscf import gto, dft, pbc
     from pyscf.pbc import gto as pbcgto, dft as pbcdft, df as pbcdf, scf as pbcscf
     import numpy as np
-    from mole import concatenate_cells
+    from .mole import concatenate_cells
     import re
-    import simple_timer
-    from integrals import get_sub2sup
+    from .simple_timer import timer
+    from .integrals import get_sub2sup
     import h5py
 
     # initialize reader for a pySCF input
-    reader = input_reader.InputReader(comment=['!', '#', '::', '//'],
+    reader = InputReader(comment=['!', '#', '::', '//'],
              case=False, ignoreunknown=True)
 
     # add finite subsystem block
@@ -87,7 +87,7 @@ def read_input(filename, build=True):
     inp.filename = filename
 
     # start the timer
-    inp.timer  = simple_timer.timer()
+    inp.timer  = timer()
 
     # sanity checks
     lattice = np.array(inp.lattice.group(0).split()[1:], dtype=float)

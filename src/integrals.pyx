@@ -35,7 +35,7 @@ def get_overlap_matrices(inp):
     over basis of A and B.'''
 
     from copy import deepcopy as copy
-    from mole import concatenate_cells
+    from .mole import concatenate_cells
     from pyscf.pbc import scf
 
     # get number of AOs of A and B
@@ -141,7 +141,7 @@ def get_supercell_gpoints(inp):
     '''Returns the supercell overlap and kinetic
     matrices, and G-vectors.'''
 
-    from mole import concatenate_mols, g_2_mol
+    from .mole import concatenate_mols, g_2_mol
 
     cdef float error, eP, eM
     cdef bint ldoP, ldoM, ldoI
@@ -252,7 +252,7 @@ def get_xc_pot(mA, mG, dm, g, xc):
 def get_tot_xc_pot(mA, mG, mB, mH, DA, DB, g, xc):
 
     from pyscf import dft
-    from mole import concatenate_mols
+    from .mole import concatenate_mols
 
     cdef int nA = mA.nao_nr()
     cdef int nG = mG.nao_nr()
@@ -515,7 +515,7 @@ def get_coulomb_potentials(mA, mG, mB, mH, vec, dm, gmax, thresh=1e-10):
 
     from copy import deepcopy as copy
     from pyscf import gto
-    import _vhf
+    from .vhf import direct_mapdm
 
     cdef int ix, iy, iz, iN, iG
 
@@ -594,7 +594,7 @@ def get_coulomb_potentials(mA, mG, mB, mH, vec, dm, gmax, thresh=1e-10):
         # do Coulomb integral
         atmAB, basAB, envAB = gto.conc_env(atm, bas, env,
                               mC._atm, mC._bas, mC._env)
-        tempJ = _vhf.direct_mapdm(intor_J, 's1', 'lk->s1ij', dm, 1,
+        tempJ = direct_mapdm(intor_J, 's1', 'lk->s1ij', dm, 1,
                atmAB, basAB, envAB, vhfopt=None, shls_slice=shlsJ)
 
         # check if tempI is converged
@@ -650,7 +650,7 @@ def get_supermol_1e_matrices(inp):
 def get_subsystem_densities(inp):
     '''Get the subsystem density matrices.'''
 
-    from scf import init_guess
+    from .scf import init_guess
 
     for i in range(inp.nsub):
         if '{0}/dmat'.format(i) in inp.h5py:

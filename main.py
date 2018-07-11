@@ -5,7 +5,7 @@ def main(filename):
     '''Main Program.'''
 
     from src.read_input import read_input
-    from src import pstr
+    from src.pstr import pstr
 
     # initialize and print header
     pstr ("", delim="*", addline=False)
@@ -45,9 +45,9 @@ def main(filename):
     from src.embedding import high_in_plow
     inp = high_in_plow(inp)
 
-    # periodic CCSD calculation
-    from src.embedding import do_supermol_periodic_ccsd
-    do_supermol_periodic_ccsd(inp)
+#    # periodic CCSD calculation
+#    from src.embedding import do_supermol_periodic_ccsd
+#    do_supermol_periodic_ccsd(inp)
 
     # close timer and h5py files
     inp.h5py.close()

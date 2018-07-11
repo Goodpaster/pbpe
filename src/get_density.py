@@ -72,15 +72,15 @@ def main(filename, x=None, y=None, z=None, sep=0.01):
 def read_input(filename):
     '''Reads a formatted input file.'''
 
-    import input_reader
+    from input_reader import InputReader
     import sys
     from pyscf import gto, dft, pbc
     from pyscf.pbc import gto as pbcgto, dft as pbcdft, df as pbcdf, scf as pbcscf
     import numpy as np
-    from mole import concatenate_cells
+    from .mole import concatenate_cells
 
     # initialize reader for a pySCF input
-    reader = input_reader.InputReader(comment=['!', '#', '::', '//'],
+    reader = InputReader(comment=['!', '#', '::', '//'],
              case=False, ignoreunknown=True)
 
     # add finite subsystem block

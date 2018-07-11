@@ -13,7 +13,7 @@ def main(filename, x=None, y=None, z=None, sep=0.01):
     from matplotlib.colors import LogNorm
     import matplotlib.colors as colors
     from matplotlib import cm
-    import intor
+    from .intor import intor, k2real, real2k
     import chem
 
     # get input
@@ -48,7 +48,7 @@ def main(filename, x=None, y=None, z=None, sep=0.01):
         mB.unit = 'A'
         mB.build(dump_input=False)
 
-        Sm_T[i] = intor.intor(mA, mB, 'cint1e_ovlp_sph')
+        Sm_T[i] = intor(mA, mB, 'cint1e_ovlp_sph')
 
     # read fock matrices from file
     if inp.read and os.path.isfile(inp.read+'.fock'):
@@ -66,13 +66,13 @@ def main(filename, x=None, y=None, z=None, sep=0.01):
             plt.plot(x,E_k1[i],'b-')
 
         # transform into real space
-        FS_T = intor.k2real(FS, kpts1, Ls)
-        Sm_T2 = intor.k2real(Smat, kpts1, Ls)
+        FS_T = k2real(FS, kpts1, Ls)
+        Sm_T2 = k2real(Smat, kpts1, Ls)
         print ('SMAT DIFF: ', np.abs(Sm_T - Sm_T2).max())
 
         # transform back into k-space
-        FS_k = intor.real2k(FS_T, kpts2, Ls)
-        Sm_k = intor.real2k(Sm_T, kpts2, Ls)
+        FS_k = real2k(FS_T, kpts2, Ls)
+        Sm_k = real2k(Sm_T, kpts2, Ls)
 
 #        print (repr(FS.reshape(len(kpts1), nao, nao)[0]))
 #        print (FS_k[0])
@@ -105,7 +105,7 @@ def diagonalize(Fock, Smat, kpts=None):
 def read_band(filename):
     '''Reads a formatted input file.'''
 
-    import input_reader
+    from input_reader import InputReader
     import sys
     from pyscf import gto, dft, pbc
     from pyscf.pbc import gto as pbcgto, dft as pbcdft, df as pbcdf, scf as pbcscf
@@ -113,7 +113,7 @@ def read_band(filename):
     from mole import concatenate_cells
 
     # initialize reader for a pySCF input
-    reader = input_reader.InputReader(comment=['!', '#', '::', '//'],
+    reader = InputReader(comment=['!', '#', '::', '//'],
              case=False, ignoreunknown=True)
 
     # define "band" block

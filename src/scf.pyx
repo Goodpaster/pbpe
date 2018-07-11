@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
 import scipy as sp
+from functools import reduce
 
 FTYPE = np.float
 ctypedef np.float_t FTYPE_t
@@ -20,9 +21,10 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
 
     from pyscf.pbc import dft as pbcdft
     from pyscf import lib
-    from integrals import get_xc_pot
-    from integrals import get_2e_matrix
+    from .integrals import get_xc_pot
+    from .integrals import get_2e_matrix
     import pickle
+    from pyscf.scf.diis import CDIIS
 
     cdef int nk = inp.nkpts
     cdef int nA = inp.cSCF[A].cell.nao_nr()
@@ -48,7 +50,6 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
         if inp.embed.subcycles == 1:
             if inp.diis and inp.ift>=inp.diis:
                 if inp.DIIS[A] is None:
-                    from pyscf.scf.diis import CDIIS
                     inp.DIIS[A] = CDIIS()
                     inp.DIIS[A].space = 20
                 # make supermolecular density matrix
@@ -138,7 +139,6 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
     if inp.embed.subcycles > 1:
         if inp.diis and inp.ift>=inp.diis:
             if inp.DIIS[A] is None:
-                from pyscf.scf.diis import CDIIS
                 inp.DIIS[A] = CDIIS()
                 inp.DIIS[A].space = 30
             Fock[...] = inp.DIIS[A].update(SmatAA, inp.Dmat[A][...], Fock[...])
@@ -310,7 +310,7 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
     '''Do the supermolecular SCF.'''
 
     from pyscf import lib
-    from pstr import pstr
+    from .pstr import pstr
     import pickle
 
     cdef int nk = len(kpts)
