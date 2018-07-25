@@ -199,10 +199,11 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
     norbs = ( nelectron * nkpts ) // 2
     e_sorted = np.sort(e.ravel())
     fermi = ( e_sorted[norbs] + e_sorted[norbs-1] ) / 2.
+    eorder = np.argsort(e, axis=None)
 
     # print warning for band gap
     bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
-#    if bandgap <= 0.001: print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
+    if bandgap <= 0.001: print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
 
     # get molecular occupation
     if sigma is None:
@@ -214,6 +215,12 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
         i0 = np.where( mo_occ >= 1000 )
         mo_occ[ie] = 2. / ( np.exp( mo_occ[ie] ) + 1. )
         mo_occ[i0] = 0.
+
+        # print occupation
+        print ('MO occupancy:')
+        for i in range(max(0,norbs-6),min(norbs+6,nao*nkpts)):
+            print ('{0:>3d}     {1:12.6f}     {2:12.6f}'.format(
+                   i+1, e.flatten()[eorder][i], mo_occ.flatten()[eorder][i]))
 
     # get density matrix
     if nkpts == 1:
