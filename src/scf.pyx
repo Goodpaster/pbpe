@@ -10,15 +10,26 @@ ctypedef np.complex_t CTYPE_t
 
 def init_guess(cSCF, kpts):
     '''Initial guess of the density matrix.'''
-    cdef nk = len(kpts)
-    dm0 = cSCF.init_guess_by_atom()
-    if nk == 1:
-        dm = np.zeros((1, dm0.shape[0], dm0.shape[1]), dtype=float)
-    else:
-        dm = np.zeros((nk, dm0.shape[0], dm0.shape[1]), dtype=complex)
-    for i in range(nk):
-        dm[i] = dm0
-    return dm
+    cdef int nk = len(kpts)
+    try:
+        dm0 = cSCF.init_guess_by_atom()
+    except NotImplementedError:
+        dm0 = cSCF.get_init_guess()
+#    print (dm0.shape)
+#    if dm0.ndim == 2:
+#        na = dm0.shape[0]
+#        nb = dm0.shape[1]
+#    else:
+#        na = dm0.shape[1]
+#        nb = dm0.shape[2]
+#    if nk == 1:
+#        dm = np.zeros((1, na, nb), dtype=float)
+#    else:
+#        dm = np.zeros((nk, na, nb), dtype=complex)
+#    for i in range(nk):
+#        dm[i] = dm0
+    return dm0
+
 
 def do_embedding(int A, inp, ldiag=True, llast=False):
 

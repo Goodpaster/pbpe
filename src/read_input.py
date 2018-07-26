@@ -35,8 +35,9 @@ def read_input(filename, build=True):
     operator.add_boolean_key('huzinaga', action='huzinaga') # huzinaga operator
 
     # lattice vectors
-    reader.add_regex_line('lattice', '[Ll][Aa][Tt][Tt][Ii][Cc][Ee](\s+(\d+\.?\d*))+',
-                          required=True)
+    lattice = reader.add_block_key('lattice', required=True)
+    lattice.add_regex_line('vector', '\s*(\d+.?\d*)\s+(\d+.?\d*)\s+(\d+.?\d*)',
+        repeat=True)
 
     # k-points
     kgroup = reader.add_mutually_exclusive_group(dest='kgroup', required=True)
@@ -82,6 +83,11 @@ def read_input(filename, build=True):
     reader.add_boolean_key('huzfermi')   # shifts energy to set fermi to zero
     reader.add_boolean_key('fcidump')    # creates an .fcidump file for sup calc.
 
+    # electric core potential (ECP)
+    ecp = reader.add_block_key('ecp')
+    ecp.add_regex_line('atom',
+        '\s*([A-Za-z]+)\s+([A-Za-z0-9]+)', repeat=True)
+
     # read the input file
     inp = reader.read_input(filename)
     inp.filename = filename
@@ -90,7 +96,10 @@ def read_input(filename, build=True):
     inp.timer  = timer()
 
     # sanity checks
-    lattice = np.array(inp.lattice.group(0).split()[1:], dtype=float)
+    lattice = []
+    for r in inp.lattice.vector:
+        lattice.append(np.array([r.group(1), r.group(2), r.group(3)], dtype=float))
+    lattice = np.array(lattice)
     if len(lattice) < inp.dimension:
         sys.exit("Must provide as many LATTICE constants as DIMENSIONS!")
     if len(inp.subsystem) > 2:
@@ -138,10 +147,11 @@ def read_input(filename, build=True):
                 bmin = inp.bspace - bmin
                 for i in range(len(allcoords)):
                     allcoords[i].transpose()[d] += bmin
-                lattice = np.append(lattice, [bmax])
+                tempvec = np.zeros((3))
+                tempvec[d] = bmax
+                lattice = np.append(lattice, [tempvec], axis=0)
 
     # create 3x3 lattice, print to screen
-    lattice = np.array([[lattice[0], 0, 0], [0, lattice[1], 0], [0, 0, lattice[2]]])
     conversion = 1.
     if inp.unit in ('bohr','b'): conversion = 0.52917720859
     b2a = 0.52917720859
@@ -160,6 +170,13 @@ def read_input(filename, build=True):
         inp.gs = np.array(np.round(lattice.diagonal() / inp.gspacing, 0), dtype=int)
     else:
         inp.gs = np.array(inp.gs, dtype=int)
+
+    # electric core potential
+    ecp = None
+    if inp.ecp is not None:
+        ecp = {}
+        for r in inp.ecp.atom:
+            ecp.update({r.group(1): r.group(2)})
 
     # initialize HDF5 file using h5py
     if inp.filename[-4:] == '.inp':
@@ -247,9 +264,14 @@ def read_input(filename, build=True):
             cell.pseudo = inp.pseudo
             fcell.pseudo = inp.pseudo
 
+        # electric core potential
+        if ecp is not None:
+            cell.ecp = ecp
+            fcell.ecp = ecp
+
         # cell grid points
-        cell.gs  = inp.gs
-        fcell.gs = inp.gs
+        cell.mesh = inp.gs
+        fcell.mesh = inp.gs
 
         # cell dimension
         cell.dimension = inp.dimension
@@ -380,6 +402,7 @@ def read_input(filename, build=True):
     # return
     return inp
 
+
 class class_embed():
     '''A class to hold the embed options.'''
 
@@ -402,16 +425,16 @@ def f2r(coord, lattice, dimension, fractional):
         3D assumes x, y, z coords are fractional
     '''
     import numpy as np
-    nc = np.copy(coord)
+    nc = np.zeros((3))
     if fractional:
         if dimension >= 1:
-            nc[0] *= lattice[0]
+            nc += coord[0] * lattice[0]
         if dimension >= 2:
-            nc[1] *= lattice[1]
+            nc += coord[1] * lattice[1]
         if dimension == 3:
-            nc[2] *= lattice[2]
-
+            nc += coord[2] * lattice[2]
     return nc
+
 
 def print_coords(cell):
 
