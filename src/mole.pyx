@@ -103,13 +103,14 @@ def concatenate_cells(mA, mB, ghost=False):
             atmC.append([newsym, mB.atom_coord(i)*b2a])
             mC.basis.update({newsym: mB.basis[oldsym]})
 
-    mC.atom      = atmC
-    mC.verbose   = mA.verbose
-    mC.charge    = mA.charge + mB.charge
-    mC.a         = mA.a * conversion
-    mC.mesh      = mA.gs
-    mC.dimension = mA.dimension
-    mC.unit = 'a'
+    mC.atom       = atmC
+    mC.verbose    = mA.verbose
+    mC.charge     = mA.charge + mB.charge
+    mC.a          = mA.a * conversion
+    mC.mesh       = mA.mesh
+    mC.dimension  = mA.dimension
+    mC.unit       = 'a'
+    mC.ecp        = mA.ecp
     mC.max_memory = mA.max_memory
     mC.build(dump_input=False)
 

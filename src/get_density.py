@@ -203,7 +203,7 @@ def read_input(filename):
         cell.a = inp.conversion * a
 
         # cell grid points
-        cell.mesh = np.array(inp.gs, dtype=int)
+        cell.mesh = np.array(inp.mesh, dtype=int)
 
         # cell dimension
         cell.dimension = inp.dimension

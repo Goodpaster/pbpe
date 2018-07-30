@@ -28,7 +28,7 @@ def read_input(filename, build=True):
     embed.add_line_key('conv', type=float, default=1e-6)    # embed energy convergence
     embed.add_line_key('method', type=str)                  # embedding method
     embed.add_boolean_key('freezeb')                        # optimize only subsystem A
-    embed.add_line_key('subcycles', type=int, default=1)    # number of subsys diagonalizations
+    embed.add_line_key('subcycles', type=int, default=10)   # number of subsys diagonalizations
     operator = embed.add_mutually_exclusive_group(dest='operator', required=True)
     operator.add_line_key('mu', type=float, default=1e6)    # manby operator by mu
     operator.add_boolean_key('manby', action=1e6)           # manby-miller operator
@@ -46,18 +46,26 @@ def read_input(filename, build=True):
     kscaled.add_regex_line('kpoints', '\s*(\-?\d+\.?\d*)\s+(\-?\d+\.?\d*)\s+(\-?\d+\.?\d*)',
                             repeat=True)
 
-    # grid points and dimensions
-    reader.add_line_key('gspacing', type=float)
-    reader.add_line_key('gs', type=[int, int, int])
+    # grid/mesh points
+    mesh = reader.add_mutually_exclusive_group(dest='mgroup', required=True)
+    mesh.add_line_key('gspacing', type=float)
+    mesh.add_line_key('gs', type=[int, int, int])
+    mesh.add_line_key('mesh', type=[int, int, int])
+
+    # basis block key
+    basis = reader.add_block_key('basis')
+    basis.add_regex_line('atom', '\s*([A-Za-z]+)\s+([A-Za-z0-9]+)', repeat=True)
+
+    # dimensions
     reader.add_line_key('dimension', type=(0,1,2,3), required=True)
     reader.add_line_key('bspace', type=float, default=2.0)
 
     # general line keys
-    reader.add_line_key('basis', default='sto-3g')
     reader.add_line_key('unit', type=('angstrom','a','bohr','b'), default='a')
     reader.add_line_key('method', default='lda,vwn')     # high level method
     reader.add_line_key('verbose', type=int, default=3)  # pySCF verbose level
     reader.add_line_key('maxiter', type=int, default=50) # max SCF iteration
+    reader.add_line_key('supcycles', type=int, default=None) # SCF cycles for sup. pDFT
     reader.add_line_key('grid', type=int, default=1)     # Becke grid level
     reader.add_line_key('pseudo', type=str)              # pseudo potential
     reader.add_line_key('memory', type=(int, float))     # max memory in MB
@@ -99,15 +107,15 @@ def read_input(filename, build=True):
     lattice = []
     for r in inp.lattice.vector:
         lattice.append(np.array([r.group(1), r.group(2), r.group(3)], dtype=float))
-    lattice = np.array(lattice)
-    if len(lattice) < inp.dimension:
+    inp.lattice = np.array(lattice)
+    if len(inp.lattice) < inp.dimension:
         sys.exit("Must provide as many LATTICE constants as DIMENSIONS!")
     if len(inp.subsystem) > 2:
         sys.exit("Only ONE or TWO subsystems can be used right now!")
-    if inp.gs is None and inp.gspacing is None:
-        sys.exit("One of 'gs' or 'gspacing' must be given!")
-    if inp.gs is not None and inp.gspacing is not None:
-        sys.exit("Only one of 'gs' or 'gspacing' must be given!")
+    if inp.basis is None:
+        if ((inp.subsystem[0].basis is not None and inp.subsystem[1].basis is None)
+            or (inp.subsystem[1].basis is not None and inp.subsystem[0].basis is None)):
+            sys.exit("Both subsystem basis must be specified!")
 
     # initialize pySCF cell objects and set some defaults
     inp.nsub = len(inp.subsystem)
@@ -117,6 +125,7 @@ def read_input(filename, build=True):
     if inp.embed is None: inp.embed = class_embed()
     if inp.embed.method is None: inp.embed.method = inp.method
     if inp.embed.method in ('ccsd', 'ccsd(t)'): inp.embed.method = 'hf'
+    if inp.supcycles is None: inp.supcycles = inp.maxiter
     inp.embed.dconv = np.sqrt(inp.embed.conv) # density matrix convergence
     inp.dconv = np.sqrt(inp.conv)             # density matrix convergence
 
@@ -129,13 +138,13 @@ def read_input(filename, build=True):
         # get all atom coordinates
         for r in inp.subsystem[c].atom:
             coord = np.array([r.group(2), r.group(3), r.group(4)], dtype=float)
-            coord = f2r(coord, lattice, inp.dimension, inp.fractional)
+            coord = f2r(coord, inp.lattice, inp.dimension, inp.fractional)
             coords.append(coord)
         coords = np.array(coords, dtype=float)
         allcoords.append(coords)
 
     # get unit cell dimensions in non-periodic directions
-    if len(lattice) < 3:
+    if len(inp.lattice) < 3:
         for d in range(1,3):
             if inp.dimension <= d:
                 bmin = 1e6
@@ -149,7 +158,7 @@ def read_input(filename, build=True):
                     allcoords[i].transpose()[d] += bmin
                 tempvec = np.zeros((3))
                 tempvec[d] = bmax
-                lattice = np.append(lattice, [tempvec], axis=0)
+                inp.lattice = np.append(inp.lattice, [tempvec], axis=0)
 
     # create 3x3 lattice, print to screen
     conversion = 1.
@@ -158,18 +167,18 @@ def read_input(filename, build=True):
     a2b = 1.88972613289
     print ('Lattice      Coordinate / Bohr               Coordinate / Angstrom')
     for i in range(3):
-        la = lattice * conversion
+        la = inp.lattice * conversion
         lb = a2b * la
         print ('A{0:1d}     {1:9.6f} {2:9.6f} {3:9.6f}     {4:9.6f} '
                '{5:9.6f} {6:9.6f}'.format(i+1, lb[i][0],
                lb[i][1], lb[i][2], la[i][0], la[i][1], la[i][2]))
     print ('')
 
-    # gs parameter
-    if inp.gs is None:
-        inp.gs = np.array(np.round(lattice.diagonal() / inp.gspacing, 0), dtype=int)
+    # mesh parameter
+    if isinstance(inp.mgroup, int) or isinstance(inp.mgroup, float):
+        inp.mesh = np.array(np.round(inp.lattice.diagonal() / inp.mgroup, 0), dtype=int)
     else:
-        inp.gs = np.array(inp.gs, dtype=int)
+        inp.mesh = inp.mgroup
 
     # electric core potential
     ecp = None
@@ -185,7 +194,13 @@ def read_input(filename, build=True):
         h5pyname = inp.filename+'.hdf5'
     inp.h5py = h5py.File(h5pyname)
 
+    # basis block into basis dict
+    basis = {}
+    for r in inp.basis.atom:
+        basis.update({r.group(1): r.group(2)})
+
     # create atom coords and basis
+    bastype = []
     for c in range(inp.nsub):
 
         # initialize cells
@@ -199,54 +214,34 @@ def read_input(filename, build=True):
         for i, r in enumerate(inp.subsystem[c].atom):
             coord = allcoords[c][i]
             if 'ghost.' in r.group(1).lower() or 'gh.' in r.group(1).lower():
-                atmlabel['ghost'].append(r.group(1).split('.')[1])
-                rgrp1 = 'ghost:{0}'.format(len(atmlabel['ghost']))
-                cell.atom.append([rgrp1, coord])
+                bastype.append(r.group(1).split('.')[1])
+                atmstr = ['ghost:{0}'.format(len(bastype)), coord]
+                cell.atom.append(atmstr)
+                atmstr = ['{0}:{1}'.format(r.group(1).split('.')[1], len(bastype)), coord]
+                fcell.atom.append(atmstr)
 
-                atm = r.group(1).split('.')[1]
-                if atm in fatlabel.keys():
-                    fatlabel[atm] += 1
-                else:
-                    fatlabel.update({atm: 1})
-                fcell.atom.append([atm+":{0}".format(fatlabel[atm]), coord])
             else:
-                rgrp1 = r.group(1)
-                if rgrp1 in atmlabel.keys():
-                    atmlabel[rgrp1] += 1
-                else:
-                    atmlabel.update({rgrp1: 1})
-                atmname = rgrp1+":{0}".format(atmlabel[rgrp1])
-                cell.atom.append([atmname, coord])
-
-                if rgrp1 in fatlabel.keys():
-                    fatlabel[rgrp1] += 1
-                else:
-                    fatlabel.update({rgrp1: 1})
-                atmname = rgrp1+":{0}".format(fatlabel[rgrp1])
-                fcell.atom.append([rgrp1, coord])
+                bastype.append(r.group(1))
+                atmstr = ['{0}:{1}'.format(r.group(1), len(bastype)), coord]
+                cell.atom.append(atmstr)
+                fcell.atom.append(atmstr)
 
         # build dict of basis for each atom
         cell.basis = {}
         fcell.basis = {}
-        nghost = 0
-        subbas = [inp.subsystem[c].basis if inp.subsystem[c].basis else inp.basis][0]
-        for d in range(inp.nsub):
-            if c==d: continue
-            sghbas = [inp.subsystem[d].basis if inp.subsystem[d].basis else inp.basis][0]
-        for i in range(len(cell.atom)):
-            if 'ghost' in cell.atom[i][0]:
-                cell.basis.update({cell.atom[i][0]: pbcgto.basis.load(sghbas,
-                    atmlabel['ghost'][nghost])})
-                nghost += 1
 
-                fcell.basis.update({fcell.atom[i][0]: pbcgto.basis.load(sghbas,
-                    fcell.atom[i][0].split(':')[0])})
-            else:
-                cell.basis.update({cell.atom[i][0]: pbcgto.basis.load(subbas,
-                    cell.atom[i][0].split(':')[0])})
+        for iat in range(len(cell.atom)):
+            at_len = int(cell.atom[iat][0].split(':')[1]) - 1
+            at_typ = bastype[at_len]
 
-                fcell.basis.update({fcell.atom[i][0]: pbcgto.basis.load(subbas,
-                    fcell.atom[i][0].split(':')[0])})
+            bas_typ = 'sto3g'
+            if inp.subsystem[c].basis is not None:
+                bas_typ = inp.subsystem[c].basis
+            elif at_typ in basis.keys():
+                bas_typ = basis[at_typ]
+
+            cell.basis.update({cell.atom[iat][0]: pbcgto.basis.load(bas_typ, at_typ)})
+            fcell.basis.update({fcell.atom[iat][0]: pbcgto.basis.load(bas_typ, at_typ)})
 
         # use local values first, then global values, if they exist
         if inp.memory is not None: cell.max_memory = inp.memory
@@ -256,8 +251,8 @@ def read_input(filename, build=True):
         fcell.verbose = inp.verbose
 
         # set lattice vectors
-        cell.a = lattice
-        fcell.a = lattice
+        cell.a = inp.lattice
+        fcell.a = inp.lattice
 
         #pseudo potentials
         if inp.pseudo is not None:
@@ -270,8 +265,8 @@ def read_input(filename, build=True):
             fcell.ecp = ecp
 
         # cell grid points
-        cell.mesh = inp.gs
-        fcell.mesh = inp.gs
+        cell.mesh = inp.mesh
+        fcell.mesh = inp.mesh
 
         # cell dimension
         cell.dimension = inp.dimension
@@ -425,14 +420,16 @@ def f2r(coord, lattice, dimension, fractional):
         3D assumes x, y, z coords are fractional
     '''
     import numpy as np
-    nc = np.zeros((3))
     if fractional:
+        nc = np.zeros((3))
         if dimension >= 1:
             nc += coord[0] * lattice[0]
         if dimension >= 2:
             nc += coord[1] * lattice[1]
         if dimension == 3:
             nc += coord[2] * lattice[2]
+    else:
+        nc = coord.copy()
     return nc
 
 

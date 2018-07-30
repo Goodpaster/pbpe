@@ -619,8 +619,31 @@ def get_coulomb_potentials(mA, mG, mB, mH, vec, dm, gmax, thresh=1e-10):
 def get_supermol_1e_matrices(inp):
     '''Get supermolecular 1e matrices.'''
 
+    import sys
+    from .pstr import pstr
+
     inp.timer.start('1e matrices')
     print ('Getting 1e matrices:')
+
+    # get smat
+    if 'smat' in inp.h5py:
+        print ('Reading overlap matrix from file...')
+        inp.Smat = inp.h5py['smat']
+    else:
+        print ('Calculating overlap matrix...')
+        try:
+            inp.Smat = inp.sSCF.get_ovlp(kpts=inp.kpts)
+        except TypeError:
+            inp.Smat = np.array([inp.sSCF.get_ovlp()])
+        inp.Smat = inp.h5py.create_dataset('smat', data=inp.Smat)
+
+        # check that Smat is not singular
+        lsing = False
+        for i in range(inp.nkpts):
+            lsing = np.linalg.cond(inp.Smat[i][...]) > 1.0 / sys.float_info.epsilon
+        if lsing:
+            pstr ("ERROR: Singular overlap matrix", delim="!")
+            sys.exit()
 
     # get hcore
     if 'hmat' in inp.h5py:
@@ -634,17 +657,6 @@ def get_supermol_1e_matrices(inp):
             inp.hcore = np.array([inp.sSCF.get_hcore()])
         inp.hcore = inp.h5py.create_dataset('hmat', data=inp.hcore)
 
-    # get smat
-    if 'smat' in inp.h5py:
-        print ('Reading overlap matrix from file...')
-        inp.Smat = inp.h5py['smat']
-    else:
-        print ('Calculating overlap matrix...')
-        try:
-            inp.Smat = inp.sSCF.get_ovlp(kpts=inp.kpts)
-        except TypeError:
-            inp.Smat = np.array([inp.sSCF.get_ovlp()])
-        inp.Smat = inp.h5py.create_dataset('smat', data=inp.Smat)
     inp.timer.end('1e matrices')
 
     # return
@@ -653,7 +665,7 @@ def get_supermol_1e_matrices(inp):
 def get_subsystem_densities(inp):
     '''Get the subsystem density matrices.'''
 
-    from .scf import init_guess
+    from .pstr import pstr
 
     for i in range(inp.nsub):
         if '{0}/dmat'.format(i) in inp.h5py:
@@ -661,9 +673,74 @@ def get_subsystem_densities(inp):
             inp.Dmat[i] = inp.h5py['{0}/dmat'.format(i)]
         else:
             inp.timer.start('initial density')
-            print ('Guessing initial density of subsystem {0}:'.format(i))
-            inp.Dmat[i] = init_guess(inp.cSCF[i], inp.kpts)
+            pstr ('Initial Density of Subsystem {0}'.format(i))
+            inp.Dmat[i] = dm_init_guess(inp, inp.cSCF[i], inp.kpts)
             inp.Dmat[i] = inp.h5py.create_dataset('{0}/dmat'.format(i), data=inp.Dmat[i])
             inp.timer.end('initial density')
 
     return inp
+
+
+def dm_init_guess(inp, cSCF, kpts):
+
+    import pyscf
+    from pyscf.gto import Mole
+    from pyscf.scf import RKS
+
+    cdef int nkpts = len(kpts)
+    cdef int nao = cSCF.cell.nao_nr()
+
+    if nkpts == 1:
+        dm0 = np.zeros((1, nao, nao), dtype=float)
+    else:
+        dm0 = np.zeros((nkpts, nao, nao), dtype=complex)
+
+    # create a simple mole object to guess the density
+    mol = cSCF.cell.to_mol()
+    mf = RKS(mol)
+    mf.xc = inp.embed.method
+    mf.max_cycle = 20
+    if inp.smear is not None:
+        mf.damp = inp.smear
+    try:
+        e = mf.kernel()
+        dm = mf.make_rdm1()
+    except np.linalg.LinAlgError:
+        dm = init_guess_by_atom(inp, mol, mf)
+
+    for i in range(nkpts):
+        dm0[i] = dm[:,:]
+
+    return dm0
+
+
+def init_guess_by_atom(inp, mol, mf):
+
+    import numpy as np
+    import pyscf
+    from pyscf.gto import Mole
+    from pyscf.scf import RKS
+
+    nao = mol.nao_nr()
+    dm = np.zeros((nao, nao))
+
+    # create a mole object for each atom
+    for i in range(mol.natm):
+        tmol = Mole()
+        tmol.atom = '{0} 0.0 0.0 0.0'.format(mol.atom_symbol(i))
+        if 'ghost' in mol.atom_symbol(i).lower():
+            continue
+        tmol.basis = mol.basis
+        tmol.ecp = mol.ecp
+        tmol.verbose = 0
+        tmol.build()
+
+        tmf = RKS(tmol)
+        tdm = tmf.get_init_guess()
+
+        ib = mol.aoslice_by_atom()[i][-2]
+        ie = mol.aoslice_by_atom()[i][-1]
+
+        dm[np.ix_(range(ib,ie), range(ib,ie))] += tdm[:,:]
+
+    return dm 

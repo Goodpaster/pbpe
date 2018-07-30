@@ -8,28 +8,6 @@ ctypedef np.float_t FTYPE_t
 CTYPE = np.complex
 ctypedef np.complex_t CTYPE_t
 
-def init_guess(cSCF, kpts):
-    '''Initial guess of the density matrix.'''
-    cdef int nk = len(kpts)
-    try:
-        dm0 = cSCF.init_guess_by_atom()
-    except NotImplementedError:
-        dm0 = cSCF.get_init_guess()
-#    print (dm0.shape)
-#    if dm0.ndim == 2:
-#        na = dm0.shape[0]
-#        nb = dm0.shape[1]
-#    else:
-#        na = dm0.shape[1]
-#        nb = dm0.shape[2]
-#    if nk == 1:
-#        dm = np.zeros((1, na, nb), dtype=float)
-#    else:
-#        dm = np.zeros((nk, na, nb), dtype=complex)
-#    for i in range(nk):
-#        dm[i] = dm0
-    return dm0
-
 
 def do_embedding(int A, inp, ldiag=True, llast=False):
 
@@ -133,6 +111,7 @@ def do_embedding(int A, inp, ldiag=True, llast=False):
     if llast:
         inp.timer.start('update hcore')
         inp.timer.start('2e matrices')
+        if inp.cSCF[A].cell.a is None: inp.cSCF[A].cell.a = inp.lattice
         try:
             vA = inp.cSCF[A].get_veff(dm=inp.Dmat[A][...])
         except TypeError:
@@ -213,8 +192,9 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
     eorder = np.argsort(e, axis=None)
 
     # print warning for band gap
-    bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
-    if bandgap <= 0.001: print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
+    if sigma is None:
+        bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
+        if bandgap <= 0.001: print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
 
     # get molecular occupation
     if sigma is None:
@@ -229,7 +209,7 @@ def diagonalize(Fock, Smat, kpts, nelectron, sigma=None):
 
         # print occupation
         print ('MO occupancy:')
-        for i in range(max(0,norbs-6),min(norbs+6,nao*nkpts)):
+        for i in range(max(0,norbs-4),min(norbs+4,nao*nkpts)):
             print ('{0:>3d}     {1:12.6f}     {2:12.6f}'.format(
                    i+1, e.flatten()[eorder][i], mo_occ.flatten()[eorder][i]))
 
@@ -326,7 +306,7 @@ def get_total_energy(inp, kpts, dsup=None, ldosup=True):
             eold += np.einsum('kij,kji', V, dm) / ( 2. * float(nk) )
         inp.Esup, inp.MOsup, inp.Dsup = do_supermol_scf(inp, inp.sSCF, dsup,
                               inp.kpts, hcore=inp.hcore[...], smat=inp.Smat[...],
-                              nmax=inp.maxiter, conv=inp.conv, eold=eold,
+                              nmax=inp.supcycles, conv=inp.conv, eold=eold,
                               sigma=inp.smear, lgamma=inp.lgamma)
         inp.timer.end('supermolecular calc.')
 
@@ -418,8 +398,10 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
             fermi = ( e_sorted[norbs] + e_sorted[norbs-1] ) / 2.
 
         # print warning for band gap
-        bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
-        if bandgap <= 0.001: print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
+        if sigma is None:
+            bandgap = abs(e_sorted[norbs] - e_sorted[norbs-1])
+            if bandgap <= 0.001:
+                print ('WARNING: Small band gap: {0:12.6f} a.u.'.format(bandgap))
         eorder = np.argsort(e, axis=None)
 
         # get molecular occupation
@@ -435,7 +417,7 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
 
             # print occupation
             print ('MO occupancy:')
-            for i in range(max(0,norbs-6),min(norbs+6,nao*nk)):
+            for i in range(max(0,norbs-4),min(norbs+4,nao*nk)):
                 print ('{0:>3d}     {1:12.6f}     {2:12.6f}'.format(
                        i+1, e.flatten()[eorder][i], mo_occ.flatten()[eorder][i]))
 
@@ -450,7 +432,9 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
         # get errors
         enew = np.einsum('kij,kji', hcore, dmat) / float(nk)
         enew += np.einsum('kij,kji', veff, dmat) / ( 2. * float(nk) )
-        erd = sp.linalg.norm(dm - dmat)
+        erd = 0.0
+        for ik in range(nk):
+            erd += sp.linalg.norm(dm[ik] - dmat[ik])
         if eold is None:
             err = np.abs(enew)
         else:

@@ -21,13 +21,13 @@ def main(filename):
     # get input
     inp = read_input(filename)
 
-    # get initial densities
-    from src.integrals import get_subsystem_densities
-    inp = get_subsystem_densities(inp)
-
     # get supermolecular 1e matrices
     from src.integrals import get_supermol_1e_matrices
     inp = get_supermol_1e_matrices(inp)
+
+    # get initial densities
+    from src.integrals import get_subsystem_densities
+    inp = get_subsystem_densities(inp)
 
     # periodic-in-periodic low level embedding
     from src.embedding import plow_in_plow
