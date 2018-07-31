@@ -641,9 +641,9 @@ def get_supermol_1e_matrices(inp):
         lsing = False
         for i in range(inp.nkpts):
             lsing = np.linalg.cond(inp.Smat[i][...]) > 1.0 / sys.float_info.epsilon
-        if lsing:
-            pstr ("ERROR: Singular overlap matrix", delim="!")
-            sys.exit()
+            if lsing:
+                pstr ("ERROR: Singular overlap matrix", delim="!")
+                sys.exit()
 
     # get hcore
     if 'hmat' in inp.h5py:
