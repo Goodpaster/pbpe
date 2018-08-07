@@ -434,7 +434,7 @@ def do_supermol_scf(inp, mf, dm, kpts, hcore=None, smat=None, nmax=50, eold=None
         enew += np.einsum('kij,kji', veff, dmat) / ( 2. * float(nk) )
         erd = 0.0
         for ik in range(nk):
-            erd += sp.linalg.norm(dm[ik] - dmat[ik])
+            erd += sp.linalg.norm(dm[ik] - dmat[ik]) / float(nk)
         if eold is None:
             err = np.abs(enew)
         else:

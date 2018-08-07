@@ -36,7 +36,7 @@ def read_input(filename, build=True):
 
     # lattice vectors
     lattice = reader.add_block_key('lattice', required=True)
-    lattice.add_regex_line('vector', '\s*(\d+.?\d*)\s+(\d+.?\d*)\s+(\d+.?\d*)',
+    lattice.add_regex_line('vector', '\s*(\-?\d+.?\d*)\s+(\-?\d+.?\d*)\s+(\-?\d+.?\d*)',
         repeat=True)
 
     # k-points
