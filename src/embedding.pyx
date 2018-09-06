@@ -601,7 +601,7 @@ def high_in_plow(inp):
             print ("Embedding                {0:17.12f}".format(inp.eemb))
             print ("CCSD-in-pDFT             {0:17.12f}".format(esub+ecc+inp.eemb))
             print ("CCSD-in-pDFT Corrected   {0:17.12f}".format(esub+ecc+inp.eemb+inp.ecorr))
-            if inp.method = 'ccsd(t)':
+            if inp.method == 'ccsd(t)':
                 print ("CCSD(T)-in-pDFT          {0:17.12f}".format(esub+ecc+ec3+inp.eemb))
                 print ("CCSD(T)-in-pDFT Corrected {0:16.12f}".format(esub+ecc+ec3+inp.eemb+inp.ecorr))
             inp.timer.end('finite emb ccsd')
