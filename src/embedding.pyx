@@ -583,7 +583,7 @@ def high_in_plow(inp):
             mCCSD = cc.RCCSD(mfA)
             ecc, t1, t2 = mCCSD.kernel()
 
-            if inp.method in ('ccsd(t)'):
+            if inp.method == 'ccsd(t)':
                 inp.timer.start('finite emb ccsd(t)')
                 from pyscf.cc import ccsd_t
                 eris = mCCSD.ao2mo()
