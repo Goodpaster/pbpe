@@ -574,7 +574,7 @@ def high_in_plow(inp):
 
         # do CCSD/CCSD(T) calculation
         if inp.method in ('ccsd', 'ccsd(t)'):
-            if inp.method in ('ccsd(t)'):
+            if inp.method == 'ccsd(t)':
                 pstr ("Finite Embedded CCSD(T) Calculation")
             else:
                 pstr ("Finite Embedded CCSD Calculation")
@@ -596,12 +596,12 @@ def high_in_plow(inp):
             print ("Subsystem HF             {0:17.12f}".format(esub))
             print ("Subsystem Correlation    {0:17.12f}".format(ecc))
             print ("Subsystem CCSD           {0:17.12f}".format(esub+ecc))
-            if inp.method in ('ccsd(t)'):
+            if inp.method == 'ccsd(t)':
                 print ("Subsystem CCSD(T)        {0:17.12f}".format(esub+ecc+ec3))
             print ("Embedding                {0:17.12f}".format(inp.eemb))
             print ("CCSD-in-pDFT             {0:17.12f}".format(esub+ecc+inp.eemb))
             print ("CCSD-in-pDFT Corrected   {0:17.12f}".format(esub+ecc+inp.eemb+inp.ecorr))
-            if inp.method in ('ccsd(t)'):
+            if inp.method = 'ccsd(t)':
                 print ("CCSD(T)-in-pDFT          {0:17.12f}".format(esub+ecc+ec3+inp.eemb))
                 print ("CCSD(T)-in-pDFT Corrected {0:16.12f}".format(esub+ecc+ec3+inp.eemb+inp.ecorr))
             inp.timer.end('finite emb ccsd')
